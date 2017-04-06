@@ -348,7 +348,7 @@ public class CameraPreviewGrabber implements PreviewCallback {
 
         public Mat rgbaCopy() {
             Mat rgba = new Mat();
-            Imgproc.cvtColor(mYuvFrameData, rgba, Imgproc.COLOR_YUV2BGRA_NV21, 4);
+            Imgproc.cvtColor(mYuvFrameData, rgba, Imgproc.COLOR_YUV2RGBA_NV21, 4);
             return rgba;
         }
 

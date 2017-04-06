@@ -58,7 +58,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         cameraView = (CameraBridgeViewBase) findViewById(R.id.cbv_pre);
         cameraView.setVisibility(View.VISIBLE);
         cameraView.setmPreviewGrabber(cameraPreviewGrabber);
-        //cameraView.enableFpsMeter();
     }
 
     @Override
