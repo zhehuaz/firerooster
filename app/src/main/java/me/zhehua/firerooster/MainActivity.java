@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 case BaseLoaderCallback.SUCCESS:
                     Log.i(TAG, "OpenCV loaded successfully");
                     cameraView.enableView();
-                break;
+                    break;
                 default:
                     super.onManagerConnected(status);
                     break;
@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         cameraPreviewGrabber = new CameraPreviewGrabber(-1);
         cameraView = (CameraBridgeViewBase) findViewById(R.id.cbv_pre);
         cameraView.setVisibility(View.VISIBLE);
-        cameraView.setmPreviewGrabber(cameraPreviewGrabber);
+        cameraView.setPreviewGrabber(cameraPreviewGrabber);
     }
 
     @Override

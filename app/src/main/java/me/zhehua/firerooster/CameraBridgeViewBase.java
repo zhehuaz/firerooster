@@ -84,7 +84,7 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
         styledAttrs.recycle();
     }
 
-    public void setmPreviewGrabber(CameraPreviewGrabber mPreviewGrabber) {
+    public void setPreviewGrabber(CameraPreviewGrabber mPreviewGrabber) {
         this.mPreviewGrabber = mPreviewGrabber;
     }
     /**
