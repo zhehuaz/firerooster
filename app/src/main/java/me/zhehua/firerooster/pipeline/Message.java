@@ -12,6 +12,10 @@ public class Message {
     private int messageType;
 
     public Object obj;
+    public Object id;
+    public Object extra;
+    public int arg1;
+    public int arg2;
     public Task sourceTask;
 
     public Task getSourceTask() {

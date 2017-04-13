@@ -370,7 +370,11 @@ public class CameraPreviewGrabber implements PreviewCallback {
         private int mHeight;
     };
 
+
+
     public static class CameraWorker extends InTask {
+        Mat lastKeyFrame;
+        int frameGroupIdx = 0;
 
         @Override
         public Message process(Message inputMessage) {
@@ -398,12 +402,21 @@ public class CameraPreviewGrabber implements PreviewCallback {
                 }
 
                 if (!grabber.mStopThread && hasFrame) {
-                    if (!grabber.mFrameChain[1 - grabber.mChainIdx].empty())
+                    if (!grabber.mFrameChain[1 - grabber.mChainIdx].empty()) {
                         //listener.onFrameAvailable(mCameraFrame[1 - mChainIdx]);
-                        frameBundle[frameCount ++] = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
+                        // bundle ------...----|-
+                        if (frameCount > 0) {
+                            frameBundle[frameCount] = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
+                        } else {
+                            message.id = lastKeyFrame;
+                            lastKeyFrame = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
+                        }
+                        frameCount ++;
+                    }
                 }
             } while (!grabber.mStopThread && frameCount < 30);
             message.obj = frameBundle;
+            message.arg1 = frameGroupIdx ++;
             Log.d(TAG, "Frame bundle constructed");
             if (grabber.mStopThread) {
                 message.type(Message.STOP_TASK);

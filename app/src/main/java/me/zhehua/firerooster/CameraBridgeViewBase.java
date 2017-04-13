@@ -19,6 +19,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 
+import me.zhehua.firerooster.pipeline.KLTTask;
 import me.zhehua.firerooster.pipeline.Pipeline;
 
 /**
@@ -346,8 +347,10 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
         Size previewSize = mPreviewGrabber.connectCamera(getWidth(), getHeight());
         new Pipeline.Builder()
             .addTask(CameraPreviewGrabber.CameraWorker.class, 0)
-            .addTask(DisplayThread.class, 1)
-            .addSharedObj(1, this)
+                .addTask(KltTask.class, 1)
+                .addTask(MotionCompensationTask.class, 2)
+            .addTask(DisplayThread.class, 3)
+            .addSharedObj(3, this)
                 .addSharedObj(0, mPreviewGrabber)
             .build()
             .start();
