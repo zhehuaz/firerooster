@@ -30,6 +30,7 @@ import me.zhehua.firerooster.pipeline.Message;
  */
 public class CameraPreviewGrabber implements PreviewCallback {
 
+    public static final int SEGSIZE = 30;
     private static final int MAGIC_TEXTURE_ID = 10;
     private static final int MAX_UNSPECIFIED = -1;
     private static final String TAG = "CameraPreviewGrabber";
@@ -382,6 +383,7 @@ public class CameraPreviewGrabber implements PreviewCallback {
             int frameCount = 0;
             Message message = new Message(this);
             message.type(Message.PROCESS);
+            message.id = lastKeyFrame;
             Mat frameBundle[] = new Mat[30];
             do {
                 boolean hasFrame = false;
@@ -403,18 +405,19 @@ public class CameraPreviewGrabber implements PreviewCallback {
 
                 if (!grabber.mStopThread && hasFrame) {
                     if (!grabber.mFrameChain[1 - grabber.mChainIdx].empty()) {
-                        //listener.onFrameAvailable(mCameraFrame[1 - mChainIdx]);
-                        // bundle ------...----|-
-                        if (frameCount > 0) {
-                            frameBundle[frameCount] = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
-                        } else {
-                            message.id = lastKeyFrame;
-                            lastKeyFrame = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
-                        }
+                        /**
+                         * frame group:   - | - - - - -...- - - - -
+                         *               key         bundle
+                         * ATTENTION: the first frame group includes a bundle with 29 frames in it
+                         * and a <b>null</b> key frame.
+                         */
+                        frameBundle[frameCount] = grabber.mCameraFrame[1 - grabber.mChainIdx].rgbaCopy();
+                        if (frameCount == SEGSIZE - 1)
+                            lastKeyFrame = frameBundle[frameCount];
                         frameCount ++;
                     }
                 }
-            } while (!grabber.mStopThread && frameCount < 30);
+            } while (!grabber.mStopThread && frameCount < SEGSIZE);
             message.obj = frameBundle;
             message.arg1 = frameGroupIdx ++;
             Log.d(TAG, "Frame bundle constructed");
