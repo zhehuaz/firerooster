@@ -1,5 +1,7 @@
 package me.zhehua.firerooster;
 
+import android.util.Log;
+
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -29,6 +31,7 @@ public class KltTask extends ProcessTask{
 
     @Override
     public Message process(Message inputMessage) {
+        Log.i(TAG, "input message");
         List<List<Point>> featureTrajectory = new LinkedList<>();
         Mat preGray = new Mat(), curGray = new Mat();
         MatOfPoint preFeats = new MatOfPoint();
@@ -41,13 +44,13 @@ public class KltTask extends ProcessTask{
         }
         Imgproc.cvtColor(keyFrame, preGray, Imgproc.COLOR_RGB2GRAY);
 
+        Imgproc.goodFeaturesToTrack(preGray, preFeats, 200, 0.1, 20);
         for (int i = 0; i < preFeats.size().height; i ++) {
             double[] point = preFeats.get(i, 0);
             List<Point> tmp = new LinkedList<>();
             tmp.add(new Point(point[0], point[1]));
             featureTrajectory.add(tmp);
         }
-        Imgproc.goodFeaturesToTrack(preGray, preFeats, 60, 0.1, 20);
 
         for (Mat curFrame : (Mat[])inputMessage.obj) {
             Imgproc.cvtColor(curFrame, curGray, Imgproc.COLOR_RGB2GRAY);
@@ -71,7 +74,7 @@ public class KltTask extends ProcessTask{
             Mat ransacStatus = new Mat();
             Calib3d.findFundamentalMat(p1, p2, Calib3d.FM_RANSAC, 3.d, 0.99d, ransacStatus);
 
-            for (int i = 0; i < ptCount; i ++) {
+            for (int i = 0; i < ransacStatus.size().height; i ++) {
                 if (ransacStatus.get(i, 0)[0] == 0) {
                     status.put(i, 0, 0);
                 }
