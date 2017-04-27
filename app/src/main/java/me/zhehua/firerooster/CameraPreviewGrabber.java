@@ -30,7 +30,7 @@ import me.zhehua.firerooster.pipeline.Message;
  */
 public class CameraPreviewGrabber implements PreviewCallback {
 
-    public static final int SEGSIZE = 30;
+    public static final int SEGSIZE = 29;
     private static final int MAGIC_TEXTURE_ID = 10;
     private static final int MAX_UNSPECIFIED = -1;
     private static final String TAG = "CameraPreviewGrabber";
@@ -384,7 +384,7 @@ public class CameraPreviewGrabber implements PreviewCallback {
             Message message = new Message(this);
             message.type(Message.PROCESS);
             message.id = lastKeyFrame;
-            Mat frameBundle[] = new Mat[30];
+            Mat frameBundle[] = new Mat[SEGSIZE];
             do {
                 boolean hasFrame = false;
                 synchronized (grabber) {

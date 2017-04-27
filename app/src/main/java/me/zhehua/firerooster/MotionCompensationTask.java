@@ -1,6 +1,7 @@
 package me.zhehua.firerooster;
 
 import android.graphics.Matrix;
+import android.util.Log;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -22,13 +23,15 @@ import me.zhehua.firerooster.pipeline.ProcessTask;
  */
 
 public class MotionCompensationTask extends ProcessTask {
+    private static final String TAG = "MontionCompensationTask";
     boolean isShakedDetect = true;
     public static final double TRANSLATEMPLITUTE = 0.4d;
     public static final double ROTATEEAMPITUTE = 0.02;
 
-    void computeAffine(List<List<Point>> trj, List<Point> avgFeatPos, List<Mat> affineMat) {
+    boolean computeAffine(List<List<Point>> trj, List<Point> avgFeatPos, List<Mat> affineMat) {
+        Log.i(TAG, "trj size: " + trj.size());
         if (trj.size() < 3)
-            return ;
+            return false;
 
         int trjNum = trj.size();
         int trjLength = trj.get(0).size();
@@ -43,9 +46,9 @@ public class MotionCompensationTask extends ProcessTask {
             avgFeatPos.add(avgPoint);
         }
 
-        List<Mat> normalTrj = new ArrayList<>();
+        List<MatOfPoint> normalTrj = new ArrayList<>();
         for (int i = 0; i < trjLength; i ++) {
-            Point[] tmp = new Point[avgFeatPos.size()];
+            Point[] tmp = new Point[trj.size()];
             int j = 0;
             for (List<Point> points: trj) {
                 points.get(i).x -= avgFeatPos.get(i).x;
@@ -63,6 +66,7 @@ public class MotionCompensationTask extends ProcessTask {
 
         affine = Video.estimateRigidTransform(normalTrj.get(0), normalTrj.get(avgFeatPos.size() - 1), false);
         affineMat.add(affine);
+        return true;
     }
 
     private Point minusPoint(Point a, Point b) {
@@ -71,12 +75,16 @@ public class MotionCompensationTask extends ProcessTask {
 
     @Override
     public Message process(Message inputMessage) {
+        Log.i(TAG, "input message");
         List<Point> avgFeatsPos = new ArrayList<>();
         List<Mat> affineMatrix  = new ArrayList<>();
 
         Mat[] frameBundle = (Mat[]) inputMessage.obj;
 
-        computeAffine((List<List<Point>>) inputMessage.extra, avgFeatsPos, affineMatrix);
+        if (inputMessage.extra == null
+                || !computeAffine((List<List<Point>>) inputMessage.extra, avgFeatsPos, affineMatrix)) {
+            return inputMessage;
+        }
 
         List<Double> thetaVec = new ArrayList<>();
         for (int i = 0; i < affineMatrix.size(); i ++) {
@@ -164,11 +172,11 @@ public class MotionCompensationTask extends ProcessTask {
             }
         }
 
-        Mat tmp = Mat.zeros(2, 3, CvType.CV_64FC1);
-        tmp.put(0, 0, 1);
-        tmp.put(1, 1, 1);
+        //Mat tmp = Mat.zeros(2, 3, CvType.CV_64FC1);
+        //tmp.put(0, 0, 1);
+        //tmp.put(1, 1, 1);
         Matrix firstMatrix = new Matrix();
-        firstMatrix.setValues(new float[] {0, 0, 1, 1, 1, 1, 0, 0, 1});
+        //firstMatrix.setValues(new float[] {0, 0, 1, 1, 1, 1, 0, 0, 1});
         List<Matrix> stableTransformVec = new ArrayList<>();
         stableTransformVec.add(firstMatrix);
 
@@ -223,19 +231,24 @@ public class MotionCompensationTask extends ProcessTask {
             Mat shiftAffine = Mat.zeros(3, 3, CvType.CV_64FC1);
             shiftAffine.put(0, 0, 1);
             shiftAffine.put(1, 1, 1);
-            shiftAffine.put(0, 2, shift.x);
-            shiftAffine.put(1, 2, shift.y);
+            shiftAffine.put(0, 2, (float)shift.x);
+            shiftAffine.put(1, 2, (float)shift.y);
             shiftAffine.put(2, 2, 1);
 
             Mat tmpAff = Mat.zeros(3, 3, CvType.CV_64FC1);
-            // TODO is assingto ok?
-            affine.assignTo(tmpAff);
-            affine.put(2, 2, 1);
+            double[] affineValues = new double[6];
+            affine.get(0, 0, affineValues);
+            tmpAff.put(0, 0, affineValues);
+            tmpAff.put(2, 2, 1);
 
+            double[] values = new double[9];
             Matrix resultAffine = new Matrix();
-            float[] values = new float[9];
             tmpAff.mul(shiftAffine).get(0, 0, values);
-            resultAffine.setValues(values);
+            float[] valuesf = new float[9];
+            for (int i = 0; i < values.length; i ++) {
+                valuesf[i] = (float) values[i];
+            }
+            resultAffine.setValues(valuesf);
             stableTransformVec.add(resultAffine);
         }
         inputMessage.extra = stableTransformVec;

@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -346,7 +347,7 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
         Size previewSize = mPreviewGrabber.connectCamera(getWidth(), getHeight());
         new Pipeline.Builder()
             .addTask(CameraPreviewGrabber.CameraWorker.class, 0)
-                .addTaskGroup(KltTask.class, 2, 1)
+                .addTaskGroup(KltTask.class, 1, 1)
                 .addTask(MotionCompensationTask.class, 2)
             .addTask(DisplayThread.class, 3)
             .addSharedObj(3, this)
@@ -378,13 +379,17 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
         }
     }
 
+    protected void deliverAndDrawFrame(Mat modified) {
+        this.deliverAndDrawFrame(modified, null);
+    }
+
     /**
      * This method shall be called by the subclasses when they have valid
      * object and want it to be delivered to external client (via callback) and
      * then displayed on the screen.
      * @param modified - the current frame to be delivered
      */
-    protected void deliverAndDrawFrame(Mat modified) {
+    protected void deliverAndDrawFrame(Mat modified, Matrix transformMat) {
 
         boolean bmpValid = true;
         if (modified != null) {
@@ -405,6 +410,7 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
                 if (BuildConfig.DEBUG)
                     Log.d(TAG, "mStretch value: " + mScale);
 
+                //canvas.setMatrix(transformMat);
                 if (mScale != 0) {
                     canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
                          new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),

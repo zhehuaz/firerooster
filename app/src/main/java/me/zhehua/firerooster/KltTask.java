@@ -44,7 +44,7 @@ public class KltTask extends ProcessTask{
         }
         Imgproc.cvtColor(keyFrame, preGray, Imgproc.COLOR_RGB2GRAY);
 
-        Imgproc.goodFeaturesToTrack(preGray, preFeats, 200, 0.1, 20);
+        Imgproc.goodFeaturesToTrack(preGray, preFeats, 60, 0.1, 20);
         for (int i = 0; i < preFeats.size().height; i ++) {
             double[] point = preFeats.get(i, 0);
             List<Point> tmp = new LinkedList<>();
