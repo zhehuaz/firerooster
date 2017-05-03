@@ -59,7 +59,7 @@ public class MotionCompensationTask extends ProcessTask {
         }
 
         Mat affine;
-        for (int i = 0; i < avgFeatPos.size() - 1; i ++) {
+        for (int i = 1; i < avgFeatPos.size() - 1; i ++) {
             affine = Video.estimateRigidTransform(normalTrj.get(i), normalTrj.get(0), false);
             affineMat.add(affine);
         }
@@ -83,6 +83,7 @@ public class MotionCompensationTask extends ProcessTask {
 
         if (inputMessage.extra == null
                 || !computeAffine((List<List<Point>>) inputMessage.extra, avgFeatsPos, affineMatrix)) {
+            inputMessage.extra = null;
             return inputMessage;
         }
 
@@ -94,7 +95,7 @@ public class MotionCompensationTask extends ProcessTask {
                 if (!affineMatrix.get(i).empty()) {
                     affine = affineMatrix.get(i).colRange(0, 2);
                     Core.SVDecomp(affine, W, U, VT, Core.SVD_FULL_UV);
-                    affine = U.mul(VT);
+                    Core.gemm(U, VT, 1, new Mat(), 0, affine);
                     theta = Math.asin(affine.get(0, 1)[0]);
                 }
                 thetaVec.add(theta);
@@ -172,13 +173,8 @@ public class MotionCompensationTask extends ProcessTask {
             }
         }
 
-        //Mat tmp = Mat.zeros(2, 3, CvType.CV_64FC1);
-        //tmp.put(0, 0, 1);
-        //tmp.put(1, 1, 1);
-        Matrix firstMatrix = new Matrix();
-        //firstMatrix.setValues(new float[] {0, 0, 1, 1, 1, 1, 0, 0, 1});
         List<Matrix> stableTransformVec = new ArrayList<>();
-        stableTransformVec.add(firstMatrix);
+        stableTransformVec.add(new Matrix());
 
         double s2eTheta = 0;
         if (affineMatrix.size() != 0) {
@@ -215,11 +211,11 @@ public class MotionCompensationTask extends ProcessTask {
                     degree = theta + deltaTheta;
                 }
 
-                if (isShakedDetect && isStable) {
-                    shift.x = 0;
-                    shift.y = 0;
-                    degree = 0;
-                }
+//                if (isShakedDetect && isStable) {
+//                    shift.x = 0;
+//                    shift.y = 0;
+//                    degree = 0;
+//                }
 
                 // TODO crop control
                 degree = degree * 180 / Math.PI;
@@ -243,7 +239,9 @@ public class MotionCompensationTask extends ProcessTask {
 
             double[] values = new double[9];
             Matrix resultAffine = new Matrix();
-            tmpAff.mul(shiftAffine).get(0, 0, values);
+            Mat mulRes = new Mat(3, 3, CvType.CV_64FC1);
+            Core.gemm(tmpAff, shiftAffine, 1, new Mat(), 0, mulRes);
+            mulRes.get(0, 0, values);
             float[] valuesf = new float[9];
             for (int i = 0; i < values.length; i ++) {
                 valuesf[i] = (float) values[i];
@@ -251,6 +249,7 @@ public class MotionCompensationTask extends ProcessTask {
             resultAffine.setValues(valuesf);
             stableTransformVec.add(resultAffine);
         }
+        stableTransformVec.add(new Matrix());
         inputMessage.extra = stableTransformVec;
         return inputMessage;
     }

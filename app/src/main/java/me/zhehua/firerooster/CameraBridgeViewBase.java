@@ -7,8 +7,11 @@ import android.content.DialogInterface;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -410,7 +413,16 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
                 if (BuildConfig.DEBUG)
                     Log.d(TAG, "mStretch value: " + mScale);
 
-                //canvas.setMatrix(transformMat);
+                canvas.save();
+                canvas.setMatrix(transformMat);
+                if (transformMat != null) {
+                    Log.d(TAG, "transformMat value: ");
+                    Log.d(TAG, transformMat.toShortString());
+                }
+                Paint paint = new Paint();
+                paint.setColor(Color.GREEN);
+                paint.setStrokeWidth(10);
+                paint.setAntiAlias(true);
                 if (mScale != 0) {
                     canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
                          new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),
@@ -424,11 +436,14 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
                          (canvas.getWidth() - mCacheBitmap.getWidth()) / 2 + mCacheBitmap.getWidth(),
                          (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight()), null);
                 }
-
+                canvas.drawLine(0, 0, 0, 500, paint);
+                canvas.drawLine(0, 0, 500, 0, paint);
+                //canvas.drawOval(new RectF(-7, -7, 7, 7), paint);
                 if (mFpsMeter != null) {
                     mFpsMeter.measure();
                     mFpsMeter.draw(canvas, 20, 30);
                 }
+                canvas.restore();
                 getHolder().unlockCanvasAndPost(canvas);
             }
         }

@@ -166,7 +166,7 @@ public class CameraPreviewGrabber implements PreviewCallback {
                     params.setPreviewFormat(ImageFormat.NV21);
                     Log.d(TAG, "Set preview size to " + Integer.valueOf((int)frameSize.width) + "x" + Integer.valueOf((int)frameSize.height));
                     params.setPreviewSize((int)frameSize.width, (int)frameSize.height);
-
+                    params.setVideoStabilization(true);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && !Build.MODEL.equals("GT-I9100"))
                         params.setRecordingHint(true);
 
@@ -175,11 +175,6 @@ public class CameraPreviewGrabber implements PreviewCallback {
                     {
                         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
                     }
-
-                    //List<int[]> fpsRange = params.getSupportedPreviewFpsRange();
-                    //if (fpsRange != null && fpsRange.get(0)[1] >= 30000) {
-                     //   params.setPreviewFpsRange(30000, fpsRange.get(0)[1]);
-                    //}
 
                     mCamera.setParameters(params);
                     params = mCamera.getParameters();
@@ -224,6 +219,7 @@ public class CameraPreviewGrabber implements PreviewCallback {
                     /* Finally we are ready to start the preview */
                     Log.d(TAG, "startPreview");
                     mCamera.startPreview();
+                    mCamera.setDisplayOrientation(180);
                 }
                 else
                     //result = false;
@@ -370,8 +366,6 @@ public class CameraPreviewGrabber implements PreviewCallback {
         private int mWidth;
         private int mHeight;
     };
-
-
 
     public static class CameraWorker extends InTask {
         Mat lastKeyFrame;
