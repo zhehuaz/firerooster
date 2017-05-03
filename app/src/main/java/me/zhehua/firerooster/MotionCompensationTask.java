@@ -73,6 +73,9 @@ public class MotionCompensationTask extends ProcessTask {
         return new Point(a.x - b.x, a.y - b.y);
     }
 
+    private Point addPoint(Point a, Point b) {
+        return new Point(a.x + b.x, a.y + b.y);
+    }
     @Override
     public Message process(Message inputMessage) {
         Log.i(TAG, "input message");
@@ -219,9 +222,7 @@ public class MotionCompensationTask extends ProcessTask {
 
                 // TODO crop control
                 degree = degree * 180 / Math.PI;
-                shift.x += avgFeatsPos.get(m + 1).x;
-                shift.y += avgFeatsPos.get(m + 1).y;
-                affine = Imgproc.getRotationMatrix2D(shift, degree, 1);
+                affine = Imgproc.getRotationMatrix2D(addPoint(shift, avgFeatsPos.get(m + 1)), degree, 1);
             }
 
             Mat shiftAffine = Mat.zeros(3, 3, CvType.CV_64FC1);
