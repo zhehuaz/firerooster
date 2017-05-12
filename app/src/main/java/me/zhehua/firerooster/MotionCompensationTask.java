@@ -23,7 +23,7 @@ import me.zhehua.firerooster.pipeline.ProcessTask;
  */
 
 public class MotionCompensationTask extends ProcessTask {
-    private static final String TAG = "MontionCompensationTask";
+    private static final String TAG = "MotionCompensationTask";
     boolean isShakedDetect = true;
     public static final double TRANSLATEMPLITUTE = 0.4d;
     public static final double ROTATEEAMPITUTE = 0.02;
@@ -38,8 +38,8 @@ public class MotionCompensationTask extends ProcessTask {
         for (int i = 0; i < trjLength; i ++) {
             Point avgPoint = new Point(0, 0);
             for (List<Point> points : trj) {
-                avgPoint.x = points.get(i).x;
-                avgPoint.y = points.get(i).y;
+                avgPoint.x += points.get(i).x;
+                avgPoint.y += points.get(i).y;
             }
             avgPoint.x /= trjNum;
             avgPoint.y /= trjNum;
@@ -177,6 +177,7 @@ public class MotionCompensationTask extends ProcessTask {
         }
 
         List<Matrix> stableTransformVec = new ArrayList<>();
+        //stableTransformVec.add(Mat.zeros(5, 1, CvType.CV_64FC1));
         stableTransformVec.add(new Matrix());
 
         double s2eTheta = 0;
@@ -186,9 +187,10 @@ public class MotionCompensationTask extends ProcessTask {
             }
         }
 
-        for (int m = 0; m < frameBundle.length - 2; m ++) {
+        for (int m = 0; m < frameBundle.length - 1; m ++) {
             Point shift;
             Mat affine;
+            double degree = 0;
             if (affineMatrix.size() == 0) {
                 shift = new Point(0, 0);
                 affine = Mat.zeros(2, 3, CvType.CV_64FC1);
@@ -201,14 +203,13 @@ public class MotionCompensationTask extends ProcessTask {
                 tmpPoint.x = (m + 1) * tmpPoint.x / (avgFeatsPos.size() - 1);
                 tmpPoint.y = (m + 1) * tmpPoint.y / (avgFeatsPos.size() - 1);
 
-                shift = minusPoint(avgFeatsPos.get(0), avgFeatsPos.get(m + 1));
+                shift = minusPoint(avgFeatsPos.get(0), avgFeatsPos.get(m));
                 shift.x += tmpPoint.x;
                 shift.y += tmpPoint.y;
 
-                double degree = 0;
-                if (!affineMatrix.get(affineMatrix.size() - 1).empty() && !affineMatrix.get(m).empty()) {
+                if (!affineMatrix.get(affineMatrix.size() - 1).empty() && !affineMatrix.get(m + 1).empty()) {
                     double deltaTheta;
-                    deltaTheta = (m + 1) * s2eTheta / (avgFeatsPos.size() - 1);
+                    deltaTheta = (m) * s2eTheta / (avgFeatsPos.size() - 1);
                     double theta;
                     theta = thetaVec.get(m);
                     degree = theta + deltaTheta;
@@ -248,9 +249,18 @@ public class MotionCompensationTask extends ProcessTask {
                 valuesf[i] = (float) values[i];
             }
             resultAffine.setValues(valuesf);
+
+//            Mat transMat = Mat.zeros(5, 1, CvType.CV_64FC1);
+//            transMat.put(0, 0, degree);
+//            transMat.put(1, 0, shift.x);
+//            transMat.put(2, 0, shift.y);
+//            transMat.put(3, 0, shift.x + avgFeatsPos.get(m + 1).x);
+//            transMat.put(4, 0, shift.y + avgFeatsPos.get(m + 1).y);
+
             stableTransformVec.add(resultAffine);
         }
-        stableTransformVec.add(new Matrix());
+        //stableTransformVec.add(Mat.zeros(5, 1, CvType.CV_64FC1));
+        //stableTransformVec.add(new Matrix());
         inputMessage.extra = stableTransformVec;
         return inputMessage;
     }

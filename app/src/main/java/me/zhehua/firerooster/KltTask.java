@@ -44,7 +44,7 @@ public class KltTask extends ProcessTask{
         }
         Imgproc.cvtColor(keyFrame, preGray, Imgproc.COLOR_RGB2GRAY);
 
-        Imgproc.goodFeaturesToTrack(preGray, preFeats, 60, 0.1, 20);
+        Imgproc.goodFeaturesToTrack(preGray, preFeats, 100, 0.1, 4);
         for (int i = 0; i < preFeats.size().height; i ++) {
             double[] point = preFeats.get(i, 0);
             List<Point> tmp = new LinkedList<>();
@@ -84,7 +84,7 @@ public class KltTask extends ProcessTask{
             preFeats = new MatOfPoint();
             List<Point> preFeatsArray = new ArrayList<>();
             for (int i = 0; i < featureTrajectory.size(); j ++) {
-                if (status.get(i, 0)[0] == 0 || err.get(i, 0)[0] > 20 || outOfImg(curFeats.get(i, 0), curFrame.size())) {
+                if (status.get(j, 0)[0] == 0 || err.get(j, 0)[0] > 20 || outOfImg(curFeats.get(j, 0), curFrame.size())) {
                     featureTrajectory.remove(i);
                 } else {
                     preFeatsArray.add(new Point(curFeats.get(j, 0)));

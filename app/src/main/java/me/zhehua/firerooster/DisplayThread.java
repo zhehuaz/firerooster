@@ -25,9 +25,7 @@ public class DisplayThread extends OutTask {
         Mat[] bundledFrames = (Mat[]) inputMessage.obj;
         List<Matrix> transformMats = (List<Matrix>) inputMessage.extra;
         int i = 0;
-        Matrix matrix = new Matrix();
         for (Mat frame: bundledFrames) {
-            matrix.postRotate(0.3f);
             //displayView.deliverAndDrawFrame(frame, matrix);
             if (transformMats != null) {
                 displayView.deliverAndDrawFrame(frame, transformMats.get(i++));
@@ -35,6 +33,7 @@ public class DisplayThread extends OutTask {
                 displayView.deliverAndDrawFrame(frame, null);
             }
             try {
+                //frame.release();
                 Thread.sleep(34);
             } catch (InterruptedException e) {
                 e.printStackTrace();

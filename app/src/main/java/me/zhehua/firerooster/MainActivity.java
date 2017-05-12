@@ -18,6 +18,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     CameraBridgeViewBase cameraView;
     CameraPreviewGrabber cameraPreviewGrabber;
+    PreviewSurfaceView previewSurfaceView;
     private final static String TAG = "MainActivity";
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -55,9 +56,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         cameraPreviewGrabber = new CameraPreviewGrabber(-1);
+        previewSurfaceView = (PreviewSurfaceView) findViewById(R.id.psv_pre);
         cameraView = (CameraBridgeViewBase) findViewById(R.id.cbv_pre);
         cameraView.setVisibility(View.VISIBLE);
         cameraView.setPreviewGrabber(cameraPreviewGrabber);
+        cameraView.setPreviewSurfaceView(previewSurfaceView);
     }
 
     @Override
