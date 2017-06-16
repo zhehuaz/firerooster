@@ -130,14 +130,7 @@ public class PreviewSurfaceView extends SurfaceView {
 //                        (canvas.getHeight() - mCacheBitmap.getHeight()) / 2,
 //                        (canvas.getWidth() - mCacheBitmap.getWidth()) / 2,
 //                        (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight(), paint);
-                canvas.drawLine(0,
-                        0,
-                        mCacheBitmap.getWidth(),
-                        0, paint);
-                canvas.drawLine(0,
-                        0,
-                        0,
-                        mCacheBitmap.getHeight(), paint);
+
                 //canvas.drawOval(new RectF(-7, -7, 7, 7), paint);
 //                if (mFpsMeter != null) {
 //                    mFpsMeter.measure();

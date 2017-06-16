@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.OpenCVLoader;
@@ -18,7 +20,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     CameraBridgeViewBase cameraView;
     CameraPreviewGrabber cameraPreviewGrabber;
-    PreviewSurfaceView previewSurfaceView;
+    ImageView marginLeft, marginTop, marginRight, marginBottom;
+    float cropRotation = 0.8f;
+    //PreviewSurfaceView previewSurfaceView;
     private final static String TAG = "MainActivity";
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -56,16 +60,40 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         cameraPreviewGrabber = new CameraPreviewGrabber(-1);
-        previewSurfaceView = (PreviewSurfaceView) findViewById(R.id.psv_pre);
+        //previewSurfaceView = (PreviewSurfaceView) findViewById(R.id.psv_pre);
         cameraView = (CameraBridgeViewBase) findViewById(R.id.cbv_pre);
         cameraView.setVisibility(View.VISIBLE);
         cameraView.setPreviewGrabber(cameraPreviewGrabber);
-        cameraView.setPreviewSurfaceView(previewSurfaceView);
+        cameraView.setCvCameraViewListener(this);
+        //cameraView.setPreviewSurfaceView(previewSurfaceView);
+
+        marginLeft = (ImageView) findViewById(R.id.iv_left);
+        marginTop= (ImageView) findViewById(R.id.iv_top);
+        marginRight = (ImageView) findViewById(R.id.iv_right);
+        marginBottom = (ImageView) findViewById(R.id.iv_bottom);
     }
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        int viewHeight = cameraView.getHeight();
+        int viewWidth = cameraView.getWidth();
 
+        float rotio = (1 - cropRotation) / 2;
+        ViewGroup.LayoutParams params = marginLeft.getLayoutParams();
+        params.width = (int) (viewWidth * rotio);
+        marginLeft.setLayoutParams(params);
+
+        params = marginRight.getLayoutParams();
+        params.width = (int) (viewWidth * rotio);
+        marginRight.setLayoutParams(params);
+
+        params = marginTop.getLayoutParams();
+        params.height = (int) (viewHeight * rotio);
+        marginTop.setLayoutParams(params);
+
+        params = marginBottom.getLayoutParams();
+        params.height = (int) (viewHeight * rotio);
+        marginBottom.setLayoutParams(params);
     }
 
     @Override

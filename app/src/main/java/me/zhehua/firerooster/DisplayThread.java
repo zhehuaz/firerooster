@@ -17,6 +17,7 @@ import me.zhehua.firerooster.pipeline.OutTask;
 
 public class DisplayThread extends OutTask {
     private final static String TAG = "DisplayThread";
+    private int lastIdx = -1;
 
     @Override
     public Message process(Message inputMessage) {
@@ -24,6 +25,12 @@ public class DisplayThread extends OutTask {
         CameraBridgeViewBase displayView = (CameraBridgeViewBase) sharedObj;
         Mat[] bundledFrames = (Mat[]) inputMessage.obj;
         List<Matrix> transformMats = (List<Matrix>) inputMessage.extra;
+        if (inputMessage.arg1 <= lastIdx) {
+            for (Mat frame: bundledFrames) {
+                frame.release();
+            }
+            return null;
+        }
         int i = 0;
         for (Mat frame: bundledFrames) {
             //displayView.deliverAndDrawFrame(frame, matrix);
@@ -39,6 +46,7 @@ public class DisplayThread extends OutTask {
                 e.printStackTrace();
             }
         }
+        lastIdx = inputMessage.arg1;
         return null;
     }
 }

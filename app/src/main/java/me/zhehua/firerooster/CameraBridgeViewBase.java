@@ -54,7 +54,7 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
     protected boolean mEnabled;
     protected FpsMeter mFpsMeter = null;
     protected CameraPreviewGrabber mPreviewGrabber;
-    protected PreviewSurfaceView mPreviewSurfaceView;
+    //protected PreviewSurfaceView mPreviewSurfaceView;
 
     public static final int CAMERA_ID_ANY   = -1;
     public static final int CAMERA_ID_BACK  = 99;
@@ -371,6 +371,8 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
         } else {
             mFrameHeight = (int) previewSize.height;
             mFrameWidth = (int) previewSize.width;
+            // set size
+            getHolder().setFixedSize(mFrameWidth, mFrameHeight);
             AllocateCache();
         }
     }
@@ -406,7 +408,7 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
             }
         }
 
-        mPreviewSurfaceView.deliverAndDrawFrame(null);
+        //mPreviewSurfaceView.deliverAndDrawFrame(null);
         if (bmpValid && mCacheBitmap != null) {
             Canvas canvas = getHolder().lockCanvas();
             if (canvas != null) {
@@ -428,7 +430,8 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
 //                        rotateCenterY + (canvas.getHeight() - mCacheBitmap.getHeight()) / 2);
 //                    matrix.setTranslate(shiftX, shiftY);
 
-                transformMat.preRotate(90, mCacheBitmap.getWidth() / 2, mCacheBitmap.getHeight() / 2);
+                // 修正角度
+                //transformMat.preRotate(90, mCacheBitmap.getWidth() / 2, mCacheBitmap.getHeight() / 2);
                 canvas.setMatrix(transformMat);
 
                 Log.d(TAG, "transformMat value: ");
@@ -443,32 +446,32 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
                 paint.setColor(Color.GREEN);
                 paint.setStrokeWidth(10);
                 paint.setAntiAlias(true);
-//                if (mScale != 0) {
-//                    canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
-//                         new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),
-//                         (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2),
-//                         (int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2 + mScale*mCacheBitmap.getWidth()),
-//                         (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2 + mScale*mCacheBitmap.getHeight())), null);
-//                } else {
-//                     canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
-//                         new Rect((canvas.getWidth() - mCacheBitmap.getWidth()) / 2,
-//                         (canvas.getHeight() - mCacheBitmap.getHeight()) / 2,
-//                         (canvas.getWidth() - mCacheBitmap.getWidth()) / 2 + mCacheBitmap.getWidth(),
-//                         (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight()), null);
-//                }
                 if (mScale != 0) {
                     canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
-                            new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),
-                                    (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2),
-                                    (int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2 + mScale*mCacheBitmap.getWidth()),
-                                    (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2 + mScale*mCacheBitmap.getHeight())), null);
+                         new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),
+                         (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2),
+                         (int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2 + mScale*mCacheBitmap.getWidth()),
+                         (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2 + mScale*mCacheBitmap.getHeight())), null);
                 } else {
-                    canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
-                            new Rect(0,
-                                    0,
-                                    mCacheBitmap.getWidth(),
-                                    mCacheBitmap.getHeight()), null);
+                     canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
+                         new Rect((canvas.getWidth() - mCacheBitmap.getWidth()) / 2,
+                         (canvas.getHeight() - mCacheBitmap.getHeight()) / 2,
+                         (canvas.getWidth() - mCacheBitmap.getWidth()) / 2 + mCacheBitmap.getWidth(),
+                         (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight()), null);
                 }
+//                if (mScale != 0) {
+//                    canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
+//                            new Rect((int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2),
+//                                    (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2),
+//                                    (int)((canvas.getWidth() - mScale*mCacheBitmap.getWidth()) / 2 + mScale*mCacheBitmap.getWidth()),
+//                                    (int)((canvas.getHeight() - mScale*mCacheBitmap.getHeight()) / 2 + mScale*mCacheBitmap.getHeight())), null);
+//                } else {
+//                    canvas.drawBitmap(mCacheBitmap, new Rect(0,0,mCacheBitmap.getWidth(), mCacheBitmap.getHeight()),
+//                            new Rect(0,
+//                                    0,
+//                                    mCacheBitmap.getWidth(),
+//                                    mCacheBitmap.getHeight()), null);
+//                }
 //                canvas.drawLine((canvas.getWidth() - mCacheBitmap.getWidth()) / 2,
 //                        (canvas.getHeight() - mCacheBitmap.getHeight()) / 2,
 //                        (canvas.getWidth() - mCacheBitmap.getWidth()) / 2 + mCacheBitmap.getWidth(),
@@ -477,14 +480,14 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
 //                        (canvas.getHeight() - mCacheBitmap.getHeight()) / 2,
 //                        (canvas.getWidth() - mCacheBitmap.getWidth()) / 2,
 //                        (canvas.getHeight() - mCacheBitmap.getHeight()) / 2 + mCacheBitmap.getHeight(), paint);
-                canvas.drawLine(0,
-                        0,
-                        mCacheBitmap.getWidth(),
-                        0, paint);
-                canvas.drawLine(0,
-                        0,
-                        0,
-                        mCacheBitmap.getHeight(), paint);
+//                canvas.drawLine(0,
+//                        0,
+//                        mCacheBitmap.getWidth(),
+//                        0, paint);
+//                canvas.drawLine(0,
+//                        0,
+//                        0,
+//                        mCacheBitmap.getHeight(), paint);
                 //canvas.drawOval(new RectF(-7, -7, 7, 7), paint);
 //                if (mFpsMeter != null) {
 //                    mFpsMeter.measure();
@@ -495,18 +498,18 @@ public class CameraBridgeViewBase extends SurfaceView implements SurfaceHolder.C
             }
         }
     }
-
-    public void setPreviewSurfaceView(PreviewSurfaceView previewSurfaceView) {
-        this.mPreviewSurfaceView = previewSurfaceView;
-    }
+//
+//    public void setPreviewSurfaceView(PreviewSurfaceView previewSurfaceView) {
+//        this.mPreviewSurfaceView = previewSurfaceView;
+//    }
 
     // NOTE: On Android 4.1.x the function must be called before SurfaceTexture constructor!
     protected void AllocateCache()
     {
         mCacheBitmap = Bitmap.createBitmap(mFrameWidth, mFrameHeight, Bitmap.Config.ARGB_8888);
-        if (mPreviewSurfaceView != null) {
-            mPreviewSurfaceView.mCacheBitmap = mCacheBitmap;
-        }
+//        if (mPreviewSurfaceView != null) {
+//            mPreviewSurfaceView.mCacheBitmap = mCacheBitmap;
+//        }
     }
 
     public interface ListItemAccessor {

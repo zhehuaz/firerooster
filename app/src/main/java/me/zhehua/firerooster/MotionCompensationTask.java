@@ -2,12 +2,15 @@ package me.zhehua.firerooster;
 
 import android.graphics.Matrix;
 import android.util.Log;
+import android.util.MutableDouble;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
@@ -18,6 +21,8 @@ import java.util.List;
 import me.zhehua.firerooster.pipeline.Message;
 import me.zhehua.firerooster.pipeline.ProcessTask;
 
+import static java.lang.Math.abs;
+
 /**
  * Created by zhehua on 13/04/2017.
  */
@@ -25,6 +30,8 @@ import me.zhehua.firerooster.pipeline.ProcessTask;
 public class MotionCompensationTask extends ProcessTask {
     private static final String TAG = "MotionCompensationTask";
     boolean isShakedDetect = true;
+    boolean cropControlFlag = false;
+    float cropRotation = 0.8f;
     public static final double TRANSLATEMPLITUTE = 0.4d;
     public static final double ROTATEEAMPITUTE = 0.02;
 
@@ -76,6 +83,264 @@ public class MotionCompensationTask extends ProcessTask {
     private Point addPoint(Point a, Point b) {
         return new Point(a.x + b.x, a.y + b.y);
     }
+
+    boolean cropControl(float cropRotation, Point center, Point shift, MutableDouble degree, Size videoSize) {
+        List<Point> pt = new ArrayList<>();
+        pt.add(new Point(0, 0));
+        pt.add(new Point(0, videoSize.height - 1));
+        pt.add(new Point(videoSize.width - 1, videoSize.height - 1));
+        pt.add(new Point(videoSize.width - 1, 0));
+        List<Point> ptCrop = new ArrayList<>();
+        int xTip = (int) (videoSize.width * (1 - cropRotation) / 2);
+        int yTip = (int) (videoSize.height * (1 - cropRotation) / 2);
+        ptCrop.add(new Point(xTip, yTip));
+        ptCrop.add(new Point(xTip, videoSize.height - yTip));
+        ptCrop.add(new Point(videoSize.width - xTip, videoSize.height - yTip));
+        ptCrop.add(new Point(videoSize.width - xTip, yTip));
+
+        Mat shiftMat = Mat.eye(3, 3, CvType.CV_64FC1);
+        shiftMat.put(0, 2, shift.x);
+        shiftMat.put(1, 2, shift.y);
+        double angle = degree.value * 180 / 3.1415926;
+        Mat tmpRotateMat = Imgproc.getRotationMatrix2D( addPoint(center, shift), angle, 1);
+        Mat rotateMat = Mat.zeros(3,3,CvType.CV_64FC1);
+        rotateMat.put(0, 0, tmpRotateMat.get(0, 0)); // TODO copy mat
+        rotateMat.put(2, 2, 1);
+        Mat affine = new Mat(3, 3, CvType.CV_64FC1);
+        Core.gemm(rotateMat, shiftMat, 1, new Mat(), 0, affine);
+        affine = affine.rowRange(0,2);
+
+        if( isInsideAfterTrans( affine , ptCrop , pt ) )//经过平移旋转后依然包括裁剪窗口
+        {
+            return true;
+        }
+        else
+        {
+            if( xTip < abs(shift.x) || yTip < abs(shift.y) )//经过平移后不包括裁剪窗口
+            {
+                double ratio1 = xTip / abs(shift.x);
+                double ratio2 = yTip / abs(shift.y);
+                if( ratio1 < ratio2 )
+                {
+                    if( shift.x > 0 )
+                    {
+                        shift.x = xTip;
+                    }
+                    else
+                    {
+                        shift.x = -xTip;
+                    }
+                    shift.y = ratio1 * shift.y;
+                }
+                else
+                {
+                    shift.x = ratio2 * shift.x;
+                    if( shift.y > 0 )
+                    {
+                        shift.y = yTip;
+                    }
+                    else
+                    {
+                        shift.y = -yTip;
+                    }
+                }
+                degree.value = 0d;
+            }
+            else//经过平移后包括裁剪窗口
+            {
+				/*计算最大旋转角*/
+                List<Point> new_crop_pt = new ArrayList<>();
+                for( int i = 0 ; i < 4 ; i++ )
+                {
+                    new_crop_pt.add(minusPoint(ptCrop.get(i), shift));
+                }
+
+                double[] maxDegree = new double[4];
+                List<Point> img_line = new ArrayList<>();
+                List<Point> crop_line = new ArrayList<>();
+                img_line.add( new Point(0,0) );
+                img_line.add( new Point(videoSize.width-1,0) );
+                crop_line.add( new_crop_pt.get(0) );
+                crop_line.add( new_crop_pt.get(3) );
+                maxDegree[0] = computeMaxDegree( img_line , crop_line , degree.value , center );
+
+                img_line.set(1, new Point(videoSize.height-1,0));
+                crop_line.set(0, new Point(videoSize.height-1-new_crop_pt.get(1).y , new_crop_pt.get(1).x));
+                crop_line.set(1, new Point(videoSize.height-1-new_crop_pt.get(0).y , new_crop_pt.get(0).x));
+                Point newCenter = new Point();
+                newCenter.x = videoSize.height-1-center.y;
+                newCenter.y = center.x;
+                maxDegree[1] = computeMaxDegree( img_line , crop_line , degree.value , newCenter );
+
+                img_line.set(1, new Point(videoSize.width-1,0));
+                crop_line.set(0, new Point(videoSize.width-1-new_crop_pt.get(2).x , videoSize.height-1-new_crop_pt.get(2).y));
+                crop_line.set(1, new Point(videoSize.width-1-new_crop_pt.get(1).x , videoSize.height-1-new_crop_pt.get(1).y));
+                newCenter.x = videoSize.width-1-center.x;
+                newCenter.y = videoSize.height-1-center.y;
+                maxDegree[2] = computeMaxDegree( img_line , crop_line , degree.value , newCenter );
+
+                img_line.set(1, new Point(videoSize.height-1,0));
+                crop_line.set(0, new Point(new_crop_pt.get(3).y , videoSize.width-1-new_crop_pt.get(3).x));
+                crop_line.set(1, new Point(new_crop_pt.get(2).y , videoSize.width-1-new_crop_pt.get(2).x));
+                newCenter.x = center.y;
+                newCenter.y = videoSize.width-1-center.x;
+                maxDegree[3] = computeMaxDegree( img_line , crop_line , degree.value , newCenter );
+
+                if( degree.value > 0 )
+                {
+                    double min = degree.value;
+                    for( int i = 0 ; i < 4 ; i++ )
+                    {
+                        if( min > maxDegree[i] )
+                        {
+                            min = maxDegree[i];
+                        }
+                    }
+                    degree.value = min;
+                }
+                else
+                {
+                    double max = degree.value;
+                    for( int i = 0 ; i < 4 ; i++ )
+                    {
+                        if( max < maxDegree[i] )
+                        {
+                            max = maxDegree[i];
+                        }
+                    }
+                    degree.value = max;
+                }
+				/**/
+            }
+
+            return false;
+        }
+
+    }
+
+    boolean isInsideAfterTrans(Mat affine, List<Point> ptCrop, List<Point> pt) {
+        List<Point> ptTransform = new ArrayList<>();
+        for (int i = 0; i < 4; i ++) {
+            Mat tmp = Mat.ones(3, 1, CvType.CV_64FC1);
+            tmp.put(0, 0, pt.get(i).x);
+            tmp.put(1, 0, pt.get(i).y);
+            Mat pos = new Mat(3, 1, CvType.CV_64FC1);
+            Core.gemm(affine, tmp, 1, new Mat(), 0, pos);
+            ptTransform.add(new Point(pos.get(0, 0)[0], pos.get(1, 0)[0]));
+        }
+        boolean allInside = true;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                Point vec1, vec2;
+                vec1 = minusPoint(ptTransform.get(j), ptCrop.get(i));
+                vec2 = minusPoint(ptTransform.get((j + 1) % 4), ptTransform.get(j));
+                double cross = vec1.x * vec2.y - vec2.x * vec1.y;
+                if (cross > 0) {
+                    allInside = false;
+                    break;
+                }
+            }
+            if (!allInside) {
+                break;
+            }
+        }
+        return allInside;
+    }
+
+    double computeMaxDegree( List<Point> img_line , List<Point> crop_line , double degree , Point center )
+    {
+        if( degree > 0 )
+        {
+            if( center.x <= crop_line.get(0).x )
+            {
+                return Math.PI;
+            }
+            else
+            {
+                double dis = Math.sqrt( Math.pow(crop_line.get(0).x - center.x, 2) + Math.pow(crop_line.get(0).y - center.y,2));
+                if( dis <= center.y )
+                {
+                    return Math.PI;
+                }
+                else
+                {
+					/*计算切点*/
+                    double a1 , a2 , a3;
+                    a1 = center.x - crop_line.get(0).x;
+                    a2 = center.y - crop_line.get(0).y;
+                    a3 = center.x*crop_line.get(0).x - center.x * center.x + center.y*crop_line.get(0).y;
+                    double k , n;
+                    k = -a2 / a1;
+                    n = -a3 / a1;
+                    double a , b , c;
+                    a = k*k + 1;
+                    b = 2*k*n - 2*center.x*k - 2*center.y;
+                    c = n*n - 2*center.x*n + center.x*center.x;
+                    Point pointofContact = new Point();
+                    double y1 , y2;
+                    y1 = (-b + Math.sqrt(b*b - 4*a*c)) / (2*a);
+                    y2 = (-b - Math.sqrt(b*b - 4*a*c)) / (2*a);
+                    pointofContact.y = (y1<y2)?y1:y2;
+                    pointofContact.x = k*pointofContact.y + n;
+					/**/
+
+                    Point vec1 , vec2;
+                    vec1 = minusPoint(pointofContact,crop_line.get(0));
+                    vec2 = minusPoint(crop_line.get(0), crop_line.get(0));
+                    double cos_alpha = (vec1.x*vec2.x + vec1.y*vec2.y) / (Math.sqrt(vec1.x*vec1.x+vec1.y*vec1.y) * Math.sqrt(vec2.x*vec2.x+vec2.y*vec2.y));
+                    double alpha = Math.acos(cos_alpha);
+
+                    return alpha;
+                }
+            }
+        }
+        else
+        {
+            if( center.x >= crop_line.get(1).x )
+            {
+                return -3.1415926;
+            }
+            else
+            {
+                double dis = Math.sqrt( Math.pow(crop_line.get(1).x - center.x,2) + Math.pow(crop_line.get(1).y - center.y,2) );
+                if( dis <= center.y )
+                {
+                    return -3.1415926;
+                }
+                else
+                {
+					/*计算切点*/
+                    double a1 , a2 , a3;
+                    a1 = center.x - crop_line.get(1).x;
+                    a2 = center.y - crop_line.get(1).y;
+                    a3 = center.x*crop_line.get(1).x - center.x*center.x + center.y*crop_line.get(1).y;
+                    double k , n;
+                    k = -a2 / a1;
+                    n = -a3 / a1;
+                    double a , b , c;
+                    a = k*k + 1;
+                    b = 2*k*n - 2*center.x*k - 2*center.y;
+                    c = n*n - 2*center.x*n + center.x*center.x;
+                    Point pointofContact = new Point();
+                    double y1 , y2;
+                    y1 = (-b + Math.sqrt(b*b - 4*a*c)) / (2*a);
+                    y2 = (-b - Math.sqrt(b*b - 4*a*c)) / (2*a);
+                    pointofContact.y = (y1<y2)?y1:y2;
+                    pointofContact.x = k*pointofContact.y + n;
+					/**/
+
+                    Point vec1 , vec2;
+                    vec1 = minusPoint(pointofContact, crop_line.get(1));
+                    vec2 = minusPoint(crop_line.get(0), crop_line.get(1));
+                    double cos_alpha = (vec1.x*vec2.x + vec1.y*vec2.y) / (Math.sqrt(vec1.x*vec1.x+vec1.y*vec1.y) * Math.sqrt(vec2.x*vec2.x+vec2.y*vec2.y));
+                    double alpha = Math.acos(cos_alpha);
+
+                    return -alpha;
+                }
+            }
+        }
+    }
+    
     @Override
     public Message process(Message inputMessage) {
         Log.i(TAG, "input message");
@@ -156,7 +421,7 @@ public class MotionCompensationTask extends ProcessTask {
                                 (tmpRotate.get(i) < 0 && tmpRotate.get(i + 1) < 0)) {
                             rotateSd.add(0d);
                         } else {
-                            rotateSd.add(Math.abs(tmpRotate.get(i) - tmpRotate.get(i + 1)));
+                            rotateSd.add(abs(tmpRotate.get(i) - tmpRotate.get(i + 1)));
                         }
                     }
                     avgRotateSd = 0;
@@ -203,13 +468,13 @@ public class MotionCompensationTask extends ProcessTask {
                 tmpPoint.x = (m + 1) * tmpPoint.x / (avgFeatsPos.size() - 1);
                 tmpPoint.y = (m + 1) * tmpPoint.y / (avgFeatsPos.size() - 1);
 
-                shift = minusPoint(avgFeatsPos.get(0), avgFeatsPos.get(m));
+                shift = minusPoint(avgFeatsPos.get(0), avgFeatsPos.get(m + 1));
                 shift.x += tmpPoint.x;
                 shift.y += tmpPoint.y;
 
                 if (!affineMatrix.get(affineMatrix.size() - 1).empty() && !affineMatrix.get(m + 1).empty()) {
                     double deltaTheta;
-                    deltaTheta = (m) * s2eTheta / (avgFeatsPos.size() - 1);
+                    deltaTheta = (m + 1) * s2eTheta / (avgFeatsPos.size() - 1);
                     double theta;
                     theta = thetaVec.get(m);
                     degree = theta + deltaTheta;
@@ -221,8 +486,11 @@ public class MotionCompensationTask extends ProcessTask {
 //                    degree = 0;
 //                }
 
-                // TODO crop control
-                degree = degree * 180 / Math.PI;
+                MutableDouble degreeWrap = new MutableDouble(degree);
+                if (cropControlFlag) {
+                    cropControl(cropRotation, avgFeatsPos.get(m + 1), shift, degreeWrap, frameBundle[0].size());
+                }
+                degree = degreeWrap.value * 180 / Math.PI;
                 affine = Imgproc.getRotationMatrix2D(addPoint(shift, avgFeatsPos.get(m + 1)), degree, 1);
             }
 
